@@ -251,3 +251,44 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, "(ok true)");
     }
 });
+
+Clarinet.test({
+    name: "Test administrative functions",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get("deployer")!;
+        const user = accounts.get("wallet_1")!;
+
+        // Test setting platform fee
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "set-platform-fee",
+                [types.uint(50)], // 0.5%
+                deployer.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, "(ok true)");
+
+        // Test setting minimum collateral ratio
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "set-min-collateral-ratio",
+                [types.uint(200)], // 200%
+                deployer.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, "(ok true)");
+
+        // Test unauthorized access
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "set-platform-fee",
+                [types.uint(50)],
+                user.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, `(err u100)`); // ERR_NOT_AUTHORIZED
+    }
+});
