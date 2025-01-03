@@ -19,3 +19,11 @@
 (define-constant ERR_INVALID_EXPIRY (err u106))
 (define-constant ERR_INSUFFICIENT_COLLATERAL (err u107))
 (define-constant ERR_OPTION_NOT_EXERCISABLE (err u108))
+
+;; ==============================================
+;; Data Variables
+;; ==============================================
+
+(define-data-var min-collateral-ratio uint u150) ;; 150% collateral ratio
+(define-data-var platform-fee uint u10) ;; 0.1% fee (basis points)
+(define-data-var next-option-id uint u0)
