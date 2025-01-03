@@ -134,3 +134,74 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, `(err u107)`); // ERR_INSUFFICIENT_COLLATERAL
     }
 });
+
+Clarinet.test({
+    name: "Test option exercise functionality",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get("deployer")!;
+        const oracle = accounts.get("wallet_1")!;
+        const user = accounts.get("wallet_2")!;
+
+        // Set oracle and update price
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "set-oracle-address",
+                [types.principal(oracle.address)],
+                deployer.address
+            ),
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "update-btc-price",
+                [types.uint(40000)],
+                oracle.address
+            )
+        ]);
+
+        // Deposit sufficient sBTC
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "deposit-sbtc",
+                [types.uint(5000000)], // 5,000,000 satoshis
+                user.address
+            )
+        ]);
+
+        // Create CALL option
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "create-option",
+                [
+                    types.ascii("CALL"),
+                    types.uint(35000), // strike price below current
+                    types.uint(1000),
+                    types.uint(10000)
+                ],
+                user.address
+            )
+        ]);
+
+        // Update price higher for profitable exercise
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "update-btc-price",
+                [types.uint(45000)],
+                oracle.address
+            )
+        ]);
+
+        // Exercise option
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "exercise-option",
+                [types.uint(0)], // option ID 0
+                user.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, "(ok true)");
+    }
+});
