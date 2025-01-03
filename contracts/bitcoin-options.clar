@@ -205,3 +205,20 @@
         (merge option {status: "EXPIRED"}))
     (ok true))
 )
+
+;; ==============================================
+;; Read-Only Functions
+;; ==============================================
+
+(define-read-only (get-option (option-id uint))
+    (map-get? options option-id)
+)
+
+(define-read-only (get-user-balance (user principal))
+    (default-to {sbtc-balance: u0, locked-collateral: u0} 
+        (map-get? user-balances user))
+)
+
+(define-read-only (get-platform-fee)
+    (var-get platform-fee)
+)
