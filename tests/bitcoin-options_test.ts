@@ -62,3 +62,75 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, "(ok true)");
     }
 });
+
+Clarinet.test({
+    name: "Test option creation and validation",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get("deployer")!;
+        const user = accounts.get("wallet_1")!;
+
+        // First deposit sufficient sBTC for collateral
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "deposit-sbtc",
+                [types.uint(5000000)], // 5,000,000 satoshis
+                user.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, "(ok true)");
+
+        // Create a valid CALL option
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "create-option",
+                [
+                    types.ascii("CALL"),
+                    types.uint(45000), // strike price
+                    types.uint(1000), // expiry
+                    types.uint(10000) // amount
+                ],
+                user.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, "(ok u0)"); // First option ID should be 0
+
+        // Try creating option with invalid type (should fail at compile time)
+        try {
+            block = chain.mineBlock([
+                Tx.contractCall(
+                    CONTRACT_NAME,
+                    "create-option",
+                    [
+                        types.ascii("PUT1"), // Invalid 4-character string
+                        types.uint(45000),
+                        types.uint(1000),
+                        types.uint(10000)
+                    ],
+                    user.address
+                )
+            ]);
+            assertEquals(block.receipts[0].result, `(err u100)`); // ERR_NOT_AUTHORIZED
+        } catch (e) {
+            // Expected to fail due to type constraint
+            assertStringIncludes(e.message, "string-ascii 4");
+        }
+
+        // Try creating option with insufficient collateral
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "create-option",
+                [
+                    types.ascii("CALL"),
+                    types.uint(100000), // Very high strike price
+                    types.uint(1000),
+                    types.uint(10000)
+                ],
+                user.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, `(err u107)`); // ERR_INSUFFICIENT_COLLATERAL
+    }
+});
