@@ -205,3 +205,49 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, "(ok true)");
     }
 });
+
+Clarinet.test({
+    name: "Test option expiration",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const user = accounts.get("wallet_1")!;
+
+        // Deposit sufficient sBTC
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "deposit-sbtc",
+                [types.uint(5000000)], // 5,000,000 satoshis
+                user.address
+            )
+        ]);
+
+        // Create option with short expiry
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "create-option",
+                [
+                    types.ascii("PUT"),
+                    types.uint(40000),
+                    types.uint(10), // very short expiry
+                    types.uint(10000)
+                ],
+                user.address
+            )
+        ]);
+
+        // Mine blocks until expiration
+        chain.mineEmptyBlockUntil(20);
+
+        // Expire the option
+        block = chain.mineBlock([
+            Tx.contractCall(
+                CONTRACT_NAME,
+                "expire-option",
+                [types.uint(0)],
+                user.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, "(ok true)");
+    }
+});
