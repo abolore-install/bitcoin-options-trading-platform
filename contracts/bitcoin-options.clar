@@ -222,3 +222,21 @@
 (define-read-only (get-platform-fee)
     (var-get platform-fee)
 )
+
+;; ==============================================
+;; Administrative Functions
+;; ==============================================
+
+(define-public (set-platform-fee (new-fee uint))
+    (begin
+        (asserts! (is-contract-owner) ERR_NOT_AUTHORIZED)
+        (var-set platform-fee new-fee)
+        (ok true))
+)
+
+(define-public (set-min-collateral-ratio (new-ratio uint))
+    (begin
+        (asserts! (is-contract-owner) ERR_NOT_AUTHORIZED)
+        (var-set min-collateral-ratio new-ratio)
+        (ok true))
+)
