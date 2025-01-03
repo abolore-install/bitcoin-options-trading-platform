@@ -55,3 +55,39 @@
         locked-collateral: uint
     }
 )
+
+;; ==============================================
+;; Private Functions
+;; ==============================================
+
+;; Authorization Check
+(define-private (is-contract-owner)
+    (is-eq tx-sender CONTRACT_OWNER)
+)
+
+;; Option Expiry Check
+(define-private (check-expiry (option-id uint))
+    (let (
+        (option (unwrap! (map-get? options option-id) ERR_OPTION_NOT_FOUND))
+        (current-height block-height)
+    )
+    (if (> current-height (get expiry option))
+        ERR_OPTION_EXPIRED
+        (ok true)
+    ))
+)
+
+;; Balance Management
+(define-private (update-user-balance (user principal) (amount int))
+    (let (
+        (current-balance (default-to {sbtc-balance: u0, locked-collateral: u0} 
+                        (map-get? user-balances user)))
+        (new-balance (+ (get sbtc-balance current-balance) amount))
+    )
+    (if (>= new-balance u0)
+        (map-set user-balances 
+            user 
+            (merge current-balance {sbtc-balance: new-balance}))
+        ERR_INSUFFICIENT_BALANCE
+    ))
+)
